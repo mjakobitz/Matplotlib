@@ -1,0 +1,402 @@
+# Dependencies and Setup
+import matplotlib.pyplot as plt
+import pandas as pd
+import scipy.stats as st
+import numpy as np
+
+
+
+import warnings
+warnings.filterwarnings('ignore')
+
+# Study data files
+mouse_metadata = "data/Mouse_metadata.csv"
+study_results = "data/Study_results.csv"
+
+
+mouse_metadata = pd.read_csv(mouse_metadata)
+study_results = pd.read_csv(study_results)
+
+
+merge_table = pd.merge(mouse_metadata, study_results, on="Mouse ID", how="left")
+merge_table.head()
+
+
+#Statistics 
+
+mean = merge_table.groupby('Drug Regimen')['Tumor Volume (mm3)'].mean()
+median = merge_table.groupby('Drug Regimen')['Tumor Volume (mm3)'].median()
+variance = merge_table.groupby('Drug Regimen')['Tumor Volume (mm3)'].var()
+stdv = merge_table.groupby('Drug Regimen')['Tumor Volume (mm3)'].std()
+sem = merge_table.groupby('Drug Regimen')['Tumor Volume (mm3)'].sem()
+summary_df = pd.DataFrame({"Mean": mean, "Median": median, "Variance": variance, "Standard Deviation": stdv, 
+                          "SEM": s
+
+
+#bar plots
+
+# Generate a bar plot showing number of data points for each treatment regimen using pandas
+grouped_df = pd.DataFrame(merge_table.groupby(["Drug Regimen"]).count()).reset_index()
+# Filter the DataFrame down only to those columns to chart
+regimen_datapoints = grouped_df[["Drug Regimen","Mouse ID"]]
+regimen_datapoints = regimen_datapoints.rename(columns={"Mouse ID": "Count"})
+# Set the index to be "Drug Regimen" so they will be used as labels
+regimen_datapoints = regimen_datapoints.set_index("Drug Regimen")em})
+summary_df
+
+
+# Use DataFrame.plot() in order to create a bar chart of the data
+regimen_datapoints.plot(kind="bar", figsize=(10,3))
+
+# Set a title for the chart
+plt.title("Count per Drug Regimen")
+
+plt.show()
+plt.tight_layout()
+
+
+#bar plot with pyplot
+
+import matplotlib.pyplot as plt
+
+# Generate a bar plot showing number of data points for each treatment regimen using pyplot
+# select column to convert to list here
+drug_regimens = summary_df.index.tolist()
+drug_regimens
+
+regimen_count = (merge_table.groupby(["Drug Regimen"])["Age_months"].count()).tolist()
+regimen_count
+
+x_axis = np.arange(len(regimen_count))
+
+
+x_axis = drug_regimens
+# Create a bar chart based upon the above data
+plt.figure(figsize=(10,4))
+plt.bar(x_axis, regimen_count, color='b', alpha=0.5, align="center")
+
+tick_locations = [value for value in x_axis]
+plt.xticks(tick_locations, drug_regimens)
+
+
+# Give the chart a title, x label, and y label
+plt.title("Count for each Treatment")
+plt.xlabel("Drug Regimen")
+plt.ylabel("Count")
+
+
+# Set the limits of the x axis
+plt.xlim(-0.75, 10)
+# Set the limits of the y axis
+plt.ylim(0, 300)
+
+plt.show()
+
+
+#Pie plots 
+# Generate a pie plot showing the distribution of female versus male mice using pandas
+gender_df = pd.DataFrame(merge_table.groupby(["Sex"]).count()).reset_index()
+gender_df.head()
+
+gender_df = gender_df[["Sex","Mouse ID"]]
+gender_df = gender_df.rename(columns={"Mouse ID": "Count"})
+gender_df.head()
+
+# plot chart
+plt.figure(figsize=(10,6))
+ax1 = plt.subplot(121, aspect='equal')
+gender_df.plot(kind='pie', y = "Count", ax=ax1, autopct='%1.1f%%', 
+ startangle=90, shadow=False, labels=gender_df['Sex'], legend = False, fontsize=16)
+ plt.clf()
+plt.cla()
+plt.close()
+
+
+#pie plot with pyplot
+
+
+import matplotlib.pyplot as plt
+# Generate a pie plot showing the distribution of female versus male mice using pyplot
+# Convert Columns into lists
+gender_count = (merge_table.groupby(["Sex"])["Age_months"].count()).tolist()
+gender_count
+
+# Labels for the sections of our pie chart
+labels = ["Females", "Males"]
+
+# The colors of each section of the pie chart
+colors = ["pink", "blue"]
+
+# Tells matplotlib to seperate the "Python" section from the others
+explode = (0.1, 0)
+
+# Automatically finds the percentages of each part of the pie chart
+plt.pie(gender_count, explode=explode, labels=labels, colors=colors,
+        autopct="%1.1f%%", shadow=True, startangle=140)
+
+        # Tells matplotlib that we want a pie chart with equal axes
+plt.axis("equal")
+
+
+
+#Quartiles, outliers, boxplots
+
+# Calculate the final tumor volume of each mouse across four of the most promising treatment regimens. Calculate the IQR and quantitatively determine if there are any potential outliers.
+merge_table.head()
+
+# Sort data by Drug Regime, Mouse ID and Timepoint
+sorted_df = merge_table.sort_values(["Drug Regimen", "Mouse ID", "Timepoint"], ascending=True)
+# Select final volume of each mouse 
+max_df = sorted_df.loc[sorted_df["Timepoint"] == 45]
+max_df.head().reset_index()
+
+# Select data for Capomulin regimen and reset index
+cap_data_df = max_df[max_df['Drug Regimen'].isin(['Capomulin'])]
+cap_data_df.head().reset_index()
+
+# Convert column "Tumor Volume" of the Capomulin regimen into a dataframe object
+cap_list = cap_data_df.sort_values(["Tumor Volume (mm3)"], ascending=True).reset_index()
+cap_list = cap_list["Tumor Volume (mm3)"]
+cap_list
+
+# If the data is in a dataframe, we use pandas to give quartile calculations
+quartiles = cap_list.quantile([.25,.5,.75])
+lowerq = quartiles[0.25]
+upperq = quartiles[0.75]
+iqr = upperq-lowerq
+
+print(f"The lower quartile of temperatures is: {lowerq}")
+print(f"The upper quartile of temperatures is: {upperq}")
+print(f"The interquartile range of temperatures is: {iqr}")
+print(f"The the median of temperatures is: {quartiles[0.5]} ")
+
+lower_bound = lowerq - (1.5*iqr)
+upper_bound = upperq + (1.5*iqr)
+print(f"Values below {lower_bound} could be outliers.")
+print(f"Values above {upper_bound} could be outliers.")
+
+# Example outlier plot of final total volume
+fig1, ax1 = plt.subplots()
+ax1.set_title('Final Tumor Volume in Capomulin Regimen')
+ax1.set_ylabel('Final Tumor Volume (mm3)')
+ax1.boxplot(cap_list)
+plt.show()
+
+# Select data for Ramicane regimen and reset index
+ram_data_df = max_df[max_df['Drug Regimen'].isin(['Ramicane'])]
+ram_data_df.head().reset_index()
+
+# Convert column "Tumor Volume" of the Ramicane regimen into a dataframe object
+ram_list = ram_data_df.sort_values(["Tumor Volume (mm3)"], ascending=True).reset_index()
+ram_list = ram_list["Tumor Volume (mm3)"]
+ram_list
+
+# If the data is in a dataframe, we use pandas to give quartile calculations
+quartiles = ram_list.quantile([.25,.5,.75])
+lowerq = quartiles[0.25]
+upperq = quartiles[0.75]
+iqr = upperq-lowerq
+
+print(f"The lower quartile of temperatures is: {lowerq}")
+print(f"The upper quartile of temperatures is: {upperq}")
+print(f"The interquartile range of temperatures is: {iqr}")
+print(f"The the median of temperatures is: {quartiles[0.5]} ")
+
+lower_bound = lowerq - (1.5*iqr)
+upper_bound = upperq + (1.5*iqr)
+print(f"Values below {lower_bound} could be outliers.")
+print(f"Values above {upper_bound} could be outliers.")
+
+# outlier plot of final total volumes
+fig1, ax1 = plt.subplots()
+ax1.set_title('Final Tumor Volume in Ramicane Regimen')
+ax1.set_ylabel('Final Tumor Volume (mm3)')
+ax1.boxplot(cap_list)
+plt.show()
+
+# Select data for Infubinol regimen and reset index
+inf_data_df = max_df[max_df['Drug Regimen'].isin(['Infubinol'])]
+inf_data_df.head().reset_index()
+
+# Convert column "Tumor Volume" of the Infubinol regimen into a dataframe object
+inf_list = inf_data_df.sort_values(["Tumor Volume (mm3)"], ascending=True).reset_index()
+inf_list = inf_list["Tumor Volume (mm3)"]
+inf_list
+
+
+# If the data is in a dataframe, we use pandas to give quartile calculations
+quartiles = inf_list.quantile([.25,.5,.75])
+lowerq = quartiles[0.25]
+upperq = quartiles[0.75]
+iqr = upperq-lowerq
+
+print(f"The lower quartile of temperatures is: {lowerq}")
+print(f"The upper quartile of temperatures is: {upperq}")
+print(f"The interquartile range of temperatures is: {iqr}")
+print(f"The the median of temperatures is: {quartiles[0.5]} ")
+
+lower_bound = lowerq - (1.5*iqr)
+upper_bound = upperq + (1.5*iqr)
+print(f"Values below {lower_bound} could be outliers.")
+print(f"Values above {upper_bound} could be outliers.")
+
+
+# outlier plot of final total volumes
+fig1, ax1 = plt.subplots()
+ax1.set_title('Final Tumor Volume in Infubinol Regimen')
+ax1.set_ylabel('Final Tumor Volume (mm3)')
+ax1.boxplot(inf_list)
+plt.show()
+
+# Select data for Ceftamin regimen and reset index
+cef_data_df = max_df[max_df['Drug Regimen'].isin(['Ceftamin'])]
+cef_data_df.head().reset_index()
+
+# Convert column "Tumor Volume" of the Ceftamin regimen into a dataframe object
+cef_list = cef_data_df.sort_values(["Tumor Volume (mm3)"], ascending=True).reset_index()
+cef_list = cef_list["Tumor Volume (mm3)"]
+cef_list
+
+# If the data is in a dataframe, we use pandas to give quartile calculations
+quartiles = cef_list.quantile([.25,.5,.75])
+lowerq = quartiles[0.25]
+upperq = quartiles[0.75]
+iqr = upperq-lowerq
+
+print(f"The lower quartile of temperatures is: {lowerq}")
+print(f"The upper quartile of temperatures is: {upperq}")
+print(f"The interquartile range of temperatures is: {iqr}")
+print(f"The the median of temperatures is: {quartiles[0.5]} ")
+
+lower_bound = lowerq - (1.5*iqr)
+upper_bound = upperq + (1.5*iqr)
+print(f"Values below {lower_bound} could be outliers.")
+print(f"Values above {upper_bound} could be outliers.")
+
+# outlier plot of final total volumes
+fig1, ax1 = plt.subplots()
+ax1.set_title('Final Tumor Volume in Ceftamin Regimen')
+ax1.set_ylabel('Final Tumor Volume (mm3)')
+ax1.boxplot(cef_list)
+plt.show()
+
+import plotly.graph_objects as go
+import plotly.offline as pyo
+trace0 = go.Box(
+        y = cap_list,
+        name = "Capomulin"
+)
+trace1 = go.Box(
+        y = ram_list,
+        name = "Ramicane"
+)
+trace2 = go.Box(
+        y = inf_list,
+        name = "Infubinol"
+)
+trace3 = go.Box(
+        y = cef_list,
+        name = "Ceftamin"
+
+
+        data = [trace0, trace1, trace2, trace3]
+layout = go.Layout(title = "Final tumor volume for the four most promising treatment regimens")
+
+fig = go.Figure(data=data, layout=layout)
+
+pyo.plot(fig)
+
+#Line and scatter plot
+
+#Generate a line plot of time point versus tumor volume for a single mouse treated with Capomulin.
+# Create a new DataFrame that looks into Capomulin
+capomulin_df = merge_table.loc[merge_table["Drug Regimen"] == "Capomulin"]
+capomulin_df = capomulin_df.reset_index()
+capomulin_df.head()
+
+# Select data of a single mouse
+cap_single_df = capomulin_df.loc[capomulin_df["Mouse ID"] == "s185"]
+cap_single_df
+
+# Selecting only 2 columns
+cap_single_df = cap_single_df.loc[:, ["Timepoint", "Tumor Volume (mm3)"]]
+#capomulin_df.index
+#Reset the index
+cap_single_df = cap_single_df.reset_index(drop=True)
+# Generate a line plot of time point versus tumor volume for a mouse treated with Capomulin
+cap_single_df.set_index('Timepoint').plot(figsize=(10, 8), linewidth=2.5, color='blue')
+
+
+
+#Scatter plot
+
+
+# Generate a scatter plot of mouse weight versus average tumor volume for the Capomulin treatment regimen.
+capomulin_df.head()
+# Selecting only 3 columns
+reduced_df = capomulin_df.loc[:, ["Mouse ID", "Weight (g)", "Tumor Volume (mm3)"]]
+reduced_df.head()
+
+average_cap = pd.DataFrame(reduced_df.groupby(["Mouse ID", "Weight (g)"])["Tumor Volume (mm3)"].mean()).reset_index()
+average_cap.head()
+
+# Rename Tumor Volume column
+average_cap = average_cap.rename(columns={"Tumor Volume (mm3)": "Average Volume"})
+average_cap.head()
+
+ Set the 'Mouse ID' as our index
+average_cap = average_cap.set_index('Mouse ID')
+
+
+#Generate a scatter plot of mouse weight versus average tumor volume for the Capomulin regimen
+average_cap.plot(kind="scatter", x="Weight (g)", y="Average Volume", grid=True, figsize=(4,4),
+              title="Weight Vs. Average Tumor Volume")
+plt.show()
+
+
+plt.clf()
+plt.cla()
+plt.close()
+
+#Correlation Coeffiecient/Linear Regression model
+# Calculate the correlation coefficient and linear regression model for mouse weight and average tumor volume for the Capomulin regimen
+import matplotlib.pyplot as plt
+gimen
+
+mouse_weight = average_cap.iloc[:,0]
+avg_tumor_volume = average_cap.iloc[:,1]
+correlation = st.pearsonr(mouse_weight,avg_tumor_volume)
+print(f"The correlation between both factors is {round(correlation[0],2)}")
+
+x_values = average_cap['Weight (g)']
+y_values = average_cap['Average Volume']
+(slope, intercept, rvalue, pvalue, stderr) = linregress(x_values, y_values)
+regress_values = x_values * slope + intercept
+line_eq = "y = " + str(round(slope,2)) + "x + " + str(round(intercept,2))
+plt.scatter(x_values,y_values)
+plt.plot(x_values,regress_values,"r-")
+plt.annotate(line_eq,(6,10),fontsize=15,color="blue")
+plt.xlabel('Mouse Weight')
+plt.ylabel('Average Tumor Volume')
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Generate a bar plot showing number of data points for each treatment regimen using pandas
+grouped_df = pd.DataFrame(merge_table.groupby(["Drug Regimen"]).count()).reset_index()
+# Filter the DataFrame down only to those columns to chart
+regimen_datapoints = grouped_df[["Drug Regimen","Mouse ID"]]
+regimen_datapoints = regimen_datapoints.rename(columns={"Mouse ID": "Count"})
+# Set the index to be "Drug Regimen" so they will be used as labels
+regimen_datapoints = regimen_datapoints.set_index("Drug Regimen")
